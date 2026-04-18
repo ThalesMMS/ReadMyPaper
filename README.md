@@ -1,5 +1,4 @@
 # ReadMyPaper
-[![CI](https://github.com/ThalesMMS/ReadMyPaper-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/ThalesMMS/ReadMyPaper-dev/actions/workflows/ci.yml)
 
 ReadMyPaper is a local Python web app for turning scientific PDFs into spoken audio.
 
