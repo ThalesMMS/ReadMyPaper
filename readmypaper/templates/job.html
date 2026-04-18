@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Job {{ job.job_id }} · ReadMyPaper{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="job-header">
+    <div>
+      <h1>{{ job.filename }}</h1>
+      <p class="muted">Job ID: {{ job.job_id }}</p>
+    </div>
+    <div class="status-pill status-{{ job.status.value }}" id="job-status-pill">{{ job.status.value }}</div>
+  </div>
+
+  <div class="progress-block">
+    <div class="progress-meta">
+      <strong id="job-step">{{ job.step }}</strong>
+      <span id="job-progress-label">{{ (job.progress * 100) | round(0) }}%</span>
+    </div>
+    <div class="progress-bar">
+      <div id="job-progress-bar" class="progress-fill" style="width: {{ (job.progress * 100) | round(0) }}%;"></div>
+    </div>
+  </div>
+
+  {% if job.error %}
+  <div class="error-box" id="job-error-box">{{ job.error }}</div>
+  {% else %}
+  <div class="error-box hidden" id="job-error-box"></div>
+  {% endif %}
+
+  <div class="actions" id="job-actions">
+    {% if job.result.audio_path %}
+    <a class="button" href="/jobs/{{ job.job_id }}/audio">Download WAV</a>
+    {% endif %}
+    {% if job.result.cleaned_text_path %}
+    <a class="button" href="/jobs/{{ job.job_id }}/text">Download cleaned text</a>
+    {% endif %}
+    {% if job.result.original_pdf_path %}
+    <a class="button" href="/jobs/{{ job.job_id }}/pdf">Download original PDF</a>
+    {% endif %}
+    {% if job.status.value in ["completed", "failed"] %}
+    <button class="button" type="button" data-action="delete-job">Delete job</button>
+    {% endif %}
+  </div>
+</section>
+
+{% if job.result.audio_path %}
+<section class="card" id="audio-card">
+  <h2>Audio</h2>
+  <audio controls preload="metadata" class="audio-player">
+    <source src="/jobs/{{ job.job_id }}/audio" type="audio/wav">
+  </audio>
+</section>
+{% else %}
+<section class="card hidden" id="audio-card">
+  <h2>Audio</h2>
+  <audio controls preload="metadata" class="audio-player" id="job-audio-player"></audio>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Cleaned text preview</h2>
+  <textarea class="preview-box" readonly id="cleaned-text-preview">{{ preview_text or 'Preview will appear when the job finishes.' }}</textarea>
+</section>
+
+<section class="card">
+  <h2>Processing notes</h2>
+  <ul class="notes-list">
+    <li>Reading order comes from a local layout-aware PDF parser.</li>
+    <li>Default cleaning removes tables, figure captions, page furniture, footnotes, and bibliography sections.</li>
+    <li>Audio output is WAV for maximum local compatibility.</li>
+  </ul>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.ReadMyPaperPage = "job";
+  window.__job = {{ job_data | tojson }};
+</script>
+{% endblock %}

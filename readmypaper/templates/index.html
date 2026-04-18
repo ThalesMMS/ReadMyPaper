@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}ReadMyPaper{% endblock %}
+
+{% block content %}
+<section class="card hero-card">
+  <h1>ReadMyPaper</h1>
+  <p>
+    Upload a scientific PDF, let the app strip layout noise locally, and generate a spoken reading in
+    English or Brazilian Portuguese.
+  </p>
+  <p class="muted">
+    First run may download local parsing and voice models. After that, processing stays on your machine.
+  </p>
+</section>
+
+<section class="card">
+  <h2>New job</h2>
+  <form class="grid-form" action="/jobs" method="post" enctype="multipart/form-data">
+    <label>
+      <span>PDF</span>
+      <input type="file" name="pdf" accept="application/pdf" required>
+    </label>
+
+    <div class="form-row two-cols">
+      <label>
+        <span>Language</span>
+        <select id="language" name="language">
+          <option value="auto">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="pt-BR">Português (Brasil)</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Voice</span>
+        <select id="voice_key" name="voice_key">
+          <option value="auto">Auto-select from detected language</option>
+          {% for voice in voices %}
+          <option value="{{ voice.key }}" data-engine="{{ voice.engine }}">{{ voice.display_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div class="form-row two-cols">
+      <label>
+        <span>TTS Engine</span>
+        <select id="tts_engine" name="tts_engine">
+          <option value="piper" selected>Piper — Fast (lightweight, reliable)</option>
+          <option value="kokoro">Kokoro — Quality (more natural voice)</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Speech rate</span>
+        <div class="range-row">
+          <input id="speech_rate" type="range" name="speech_rate" min="0.8" max="1.3" step="0.05" value="1.0">
+          <output id="speech_rate_output">1.00×</output>
+        </div>
+      </label>
+    </div>
+
+    <fieldset>
+      <legend>Cleanup rules</legend>
+      <label class="checkbox"><input type="checkbox" name="remove_numeric_citations" checked> Remove numeric citations like [12] or (3,4)</label>
+      <label class="checkbox"><input type="checkbox" name="drop_references_section" checked> Drop references / bibliography sections</label>
+      <label class="checkbox"><input type="checkbox" name="drop_acknowledgements" checked> Drop acknowledgements / funding / conflicts sections</label>
+      <label class="checkbox"><input type="checkbox" name="drop_appendices" checked> Drop appendices / supplementary sections</label>
+      <label class="checkbox"><input type="checkbox" name="keep_headings" checked> Keep titles and section headings in the spoken text</label>
+      <label class="checkbox"><input type="checkbox" id="use_llm_cleaner" name="use_llm_cleaner"{% if default_llm_enabled %} checked{% endif %}> Use local LLM to clean ambiguous blocks (experimental)</label>
+      <div id="llm-options" class="nested-option">
+        <div class="form-row llm-settings">
+          <label>
+            <span>LLM endpoint</span>
+            <input type="text" name="llm_base_url" id="llm_base_url" placeholder="http://127.0.0.1/v1" value="{{ default_llm_url }}">
+          </label>
+          <label class="port-field">
+            <span>Port</span>
+            <input type="number" name="llm_port" id="llm_port" min="1" max="65535" inputmode="numeric" placeholder="8000">
+          </label>
+        </div>
+        <label>
+          <span>Model</span>
+          <input type="text" name="llm_model" id="llm_model" placeholder="Optional model name" value="{{ default_llm_model }}">
+        </label>
+      </div>
+    </fieldset>
+
+    <button class="primary" type="submit">Process PDF</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>The PDF is parsed locally with a layout-aware scientific document pipeline (Docling).</li>
+    <li>Reading order is repaired for multi-column papers using bounding box analysis.</li>
+    <li>A section whitelist keeps only body content (Abstract, Methods, Results, Discussion, etc.).</li>
+    <li>A spatial filter drops text fragments overlapping figures and tables.</li>
+    <li>Scientific notation is expanded for natural listening (e.g. 224×224 → "224 by 224").</li>
+    <li>Cleaned text is synthesized locally into WAV audio (Piper for speed, Kokoro for quality).</li>
+  </ol>
+</section>
+
+{% if jobs %}
+<section class="card">
+  <h2>Recent jobs</h2>
+  <div class="job-list">
+    {% for job in jobs %}
+    <a class="job-link" href="/jobs/{{ job.job_id }}">
+      <div>
+        <strong>{{ job.filename }}</strong>
+        <div class="muted small">{{ job.job_id }}</div>
+      </div>
+      <div class="status-pill status-{{ job.status.value }}">{{ job.status.value }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.__voices = {{ voices | tojson }};
+  window.ReadMyPaperPage = "index";
+</script>
+{% endblock %}

@@ -1,0 +1,2 @@
+[console_scripts]
+readmypaper = readmypaper.main:cli

@@ -1,0 +1,17 @@
+AGENTS.md
+.DS_Store
+article.pdf
+/build
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/coverage.xml
+**/htmlcov
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/coverage.xml
+**/htmlcov
