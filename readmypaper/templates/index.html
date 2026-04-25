@@ -70,16 +70,11 @@
       <label class="checkbox"><input type="checkbox" name="keep_headings" checked> Keep titles and section headings in the spoken text</label>
       <label class="checkbox"><input type="checkbox" id="use_llm_cleaner" name="use_llm_cleaner"{% if default_llm_enabled %} checked{% endif %}> Use local LLM to clean ambiguous blocks (experimental)</label>
       <div id="llm-options" class="nested-option">
-        <div class="form-row llm-settings">
-          <label>
-            <span>LLM endpoint</span>
-            <input type="text" name="llm_base_url" id="llm_base_url" placeholder="http://127.0.0.1/v1" value="{{ default_llm_url }}">
-          </label>
-          <label class="port-field">
-            <span>Port</span>
-            <input type="number" name="llm_port" id="llm_port" min="1" max="65535" inputmode="numeric" placeholder="8000">
-          </label>
-        </div>
+        <label>
+          <span>LLM base URL</span>
+          <input type="text" name="llm_base_url" id="llm_base_url" placeholder="http://127.0.0.1:11434/v1" value="{{ default_llm_url }}" aria-describedby="llm_base_url_help">
+          <span id="llm_base_url_help" class="muted small">Include a port only when needed, e.g. http://localhost:11434/v1 or https://example.com/v1</span>
+        </label>
         <label>
           <span>Model</span>
           <input type="text" name="llm_model" id="llm_model" placeholder="Optional model name" value="{{ default_llm_model }}">

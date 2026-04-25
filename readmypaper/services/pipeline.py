@@ -161,9 +161,7 @@ class ReadMyPaperPipeline:
                 engine = KokoroTtsEngine()
                 engine_used = "kokoro"
             except Exception:
-                logger.warning(
-                    "Kokoro engine unavailable, falling back to piper", exc_info=True
-                )
+                logger.warning("Kokoro engine unavailable, falling back to piper", exc_info=True)
                 voice_spec = voice_catalog.resolve(
                     options.voice_key, effective_language, tts_engine="piper"
                 )

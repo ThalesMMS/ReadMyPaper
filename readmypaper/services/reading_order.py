@@ -142,9 +142,7 @@ def _order_page(
     for span in spanning:
         span_y = _bbox_y(span[1], page_height)
         before = [
-            item
-            for item in remaining
-            if _bbox_y(item[1][1], page_height) < span_y - _Y_TOLERANCE
+            item for item in remaining if _bbox_y(item[1][1], page_height) < span_y - _Y_TOLERANCE
         ]
         if before:
             result.extend(_order_column_segment(before, len(columns), page_height))

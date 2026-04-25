@@ -139,14 +139,6 @@ legend {
   margin-top: 0.3rem;
 }
 
-.llm-settings > label:first-child {
-  flex: 3;
-}
-
-.port-field {
-  flex: 1;
-}
-
 input[type="file"],
 select,
 textarea,

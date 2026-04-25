@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from readmypaper import main
+from readmypaper import __version__, main
 from readmypaper.job_store import JobStore
 from readmypaper.types import JobResult, JobStatus
 
@@ -91,6 +91,12 @@ def _assert_no_internal_path_leaks(serialized: str) -> None:
         assert token not in serialized
 
 
+def test_cli_version_prints_package_version(capsys) -> None:
+    main.cli(["--version"])
+
+    assert capsys.readouterr().out == f"readmypaper {__version__}\n"
+
+
 def test_post_jobs_accepts_valid_engine_voice_combination(app_client) -> None:
     client, executor = app_client
 
@@ -112,7 +118,9 @@ def test_index_exposes_llm_controls_without_env_gate(app_client, monkeypatch) ->
     assert response.status_code == 200
     assert 'name="use_llm_cleaner"' in response.text
     assert 'name="llm_base_url"' in response.text
-    assert 'name="llm_port"' in response.text
+    assert "LLM base URL" in response.text
+    assert "Include a port only when needed" in response.text
+    assert "https://example.com/v1" in response.text
     assert 'name="llm_model"' in response.text
     assert 'id="llm-options" class="nested-option"' in response.text
 
@@ -126,8 +134,7 @@ def test_post_jobs_accepts_llm_options_from_form(app_client) -> None:
         tts_engine="piper",
         extra_data={
             "use_llm_cleaner": "on",
-            "llm_base_url": "http://127.0.0.1/v1",
-            "llm_port": "1234",
+            "llm_base_url": "http://127.0.0.1:11434/v1",
             "llm_model": "local-model",
         },
     )
@@ -136,11 +143,30 @@ def test_post_jobs_accepts_llm_options_from_form(app_client) -> None:
     _, args, _ = executor.submissions[0]
     options = args[3]
     assert options.use_llm_cleaner is True
-    assert options.llm_base_url == "http://127.0.0.1:1234/v1"
+    assert options.llm_base_url == "http://127.0.0.1:11434/v1"
     assert options.llm_model == "local-model"
 
 
-def test_post_jobs_rejects_invalid_llm_port(app_client) -> None:
+def test_post_jobs_applies_configured_llm_defaults(app_client, monkeypatch) -> None:
+    client, executor = app_client
+    monkeypatch.setitem(main.settings.__dict__, "llm_base_url", "http://127.0.0.1:11434/v1")
+    monkeypatch.setitem(main.settings.__dict__, "llm_model", "default-model")
+
+    response = _post_job(
+        client,
+        voice_key="auto",
+        tts_engine="piper",
+        extra_data={"use_llm_cleaner": "on"},
+    )
+
+    assert response.status_code == 303
+    _, args, _ = executor.submissions[0]
+    options = args[3]
+    assert options.llm_base_url == "http://127.0.0.1:11434/v1"
+    assert options.llm_model == "default-model"
+
+
+def test_post_jobs_accepts_llm_base_url_with_embedded_port(app_client) -> None:
     client, executor = app_client
 
     response = _post_job(
@@ -149,17 +175,35 @@ def test_post_jobs_rejects_invalid_llm_port(app_client) -> None:
         tts_engine="piper",
         extra_data={
             "use_llm_cleaner": "on",
-            "llm_base_url": "http://127.0.0.1/v1",
-            "llm_port": "70000",
+            "llm_base_url": "127.0.0.1:11434/v1",
+        },
+    )
+
+    assert response.status_code == 303
+    _, args, _ = executor.submissions[0]
+    options = args[3]
+    assert options.llm_base_url == "http://127.0.0.1:11434/v1"
+
+
+def test_post_jobs_rejects_unsupported_llm_base_url_scheme(app_client) -> None:
+    client, executor = app_client
+
+    response = _post_job(
+        client,
+        voice_key="auto",
+        tts_engine="piper",
+        extra_data={
+            "use_llm_cleaner": "on",
+            "llm_base_url": "ftp://127.0.0.1:11434/v1",
         },
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "LLM port must be between 1 and 65535."
+    assert response.json()["detail"] == "LLM base URL must be a valid URL."
     assert executor.submissions == []
 
 
-def test_post_jobs_requires_llm_endpoint_when_llm_is_enabled(app_client, monkeypatch) -> None:
+def test_post_jobs_requires_llm_base_url_when_llm_is_enabled(app_client, monkeypatch) -> None:
     client, executor = app_client
     monkeypatch.setitem(main.settings.__dict__, "llm_base_url", "")
 
@@ -171,7 +215,7 @@ def test_post_jobs_requires_llm_endpoint_when_llm_is_enabled(app_client, monkeyp
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "LLM endpoint is required when LLM cleaner is enabled."
+    assert response.json()["detail"] == "LLM base URL is required when LLM cleaner is enabled."
     assert executor.submissions == []
 
 

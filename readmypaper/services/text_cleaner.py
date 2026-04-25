@@ -654,9 +654,7 @@ class ScientificTextCleaner:
             if merged_parts and ScientificTextCleaner._should_merge_continuation(
                 merged_parts[-1], part
             ):
-                merged_parts[-1] = ScientificTextCleaner._merge_continuation(
-                    merged_parts[-1], part
-                )
+                merged_parts[-1] = ScientificTextCleaner._merge_continuation(merged_parts[-1], part)
             else:
                 merged_parts.append(part)
 

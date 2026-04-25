@@ -504,10 +504,12 @@ def test_parse_full_response_filters_invalid_order_ids() -> None:
 
 def test_parse_full_response_markdown_fences() -> None:
     batch = [(0, _block("text"))]
-    inner = json.dumps({
-        "order": [0],
-        "results": [{"id": 0, "action": "KEEP", "reason": "ok"}],
-    })
+    inner = json.dumps(
+        {
+            "order": [0],
+            "results": [{"id": 0, "action": "KEEP", "reason": "ok"}],
+        }
+    )
     resp = {"choices": [{"message": {"content": f"```json\n{inner}\n```"}}]}
     results, order = _parse_full_response(resp, batch)
     assert order == [0]
@@ -592,6 +594,7 @@ def test_group_into_batches_none_page() -> None:
 
 def _mock_httpx_for_full_clean(response_fn):
     """Create a fake httpx module whose Client.post calls response_fn(body)."""
+
     def fake_post(url, **kwargs):
         resp = MagicMock()
         resp.raise_for_status = MagicMock()
@@ -630,7 +633,10 @@ def test_clean_and_reorder_drops_junk() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         result = clean_and_reorder_blocks(
-            blocks, page_count=5, base_url="http://localhost:8000/v1", stats=stats,
+            blocks,
+            page_count=5,
+            base_url="http://localhost:8000/v1",
+            stats=stats,
         )
 
     assert len(result) == 1
@@ -658,7 +664,9 @@ def test_clean_and_reorder_respects_order() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         result = clean_and_reorder_blocks(
-            blocks, page_count=5, base_url="http://localhost:8000/v1",
+            blocks,
+            page_count=5,
+            base_url="http://localhost:8000/v1",
         )
 
     assert [b.text for b in result] == ["Paragraph A", "Paragraph B"]
@@ -680,7 +688,10 @@ def test_clean_and_reorder_legacy_rewrite_keeps_original() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         result = clean_and_reorder_blocks(
-            blocks, page_count=5, base_url="http://localhost:8000/v1", stats=stats,
+            blocks,
+            page_count=5,
+            base_url="http://localhost:8000/v1",
+            stats=stats,
         )
 
     assert len(result) == 1
@@ -706,7 +717,10 @@ def test_clean_and_reorder_long_text_is_not_truncated_by_rewrite() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         result = clean_and_reorder_blocks(
-            blocks, page_count=1, base_url="http://localhost:8000/v1", stats=stats,
+            blocks,
+            page_count=1,
+            base_url="http://localhost:8000/v1",
+            stats=stats,
         )
 
     assert result[0].text == original
@@ -734,7 +748,9 @@ def test_clean_and_reorder_protects_known_headings() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         result = clean_and_reorder_blocks(
-            blocks, page_count=10, base_url="http://localhost:8000/v1",
+            blocks,
+            page_count=10,
+            base_url="http://localhost:8000/v1",
         )
 
     texts = [b.text for b in result]
@@ -758,7 +774,9 @@ def test_clean_and_reorder_fallback_on_failure() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         result = clean_and_reorder_blocks(
-            blocks, page_count=5, base_url="http://localhost:8000/v1",
+            blocks,
+            page_count=5,
+            base_url="http://localhost:8000/v1",
         )
 
     assert len(result) == 1
@@ -767,7 +785,9 @@ def test_clean_and_reorder_fallback_on_failure() -> None:
 
 def test_clean_and_reorder_empty_blocks() -> None:
     result = clean_and_reorder_blocks(
-        [], page_count=0, base_url="http://localhost:8000/v1",
+        [],
+        page_count=0,
+        base_url="http://localhost:8000/v1",
     )
     assert result == []
 
@@ -788,7 +808,10 @@ def test_clean_and_reorder_sends_api_key_header() -> None:
 
     with patch.dict("sys.modules", {"httpx": fake_httpx}):
         clean_and_reorder_blocks(
-            blocks, page_count=5, base_url="http://localhost:8000/v1", api_key="mykey",
+            blocks,
+            page_count=5,
+            base_url="http://localhost:8000/v1",
+            api_key="mykey",
         )
 
     call_kwargs = fake_client.post.call_args

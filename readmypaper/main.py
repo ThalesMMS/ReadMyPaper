@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import shutil
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -15,6 +16,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from . import __version__
 from .config import settings
 from .job_store import JobStore
 from .persistence import restore_jobs_from_disk
@@ -94,7 +96,6 @@ async def create_job(
     tts_engine: str = Form("piper"),
     use_llm_cleaner: str | None = Form(None),
     llm_base_url: str = Form(""),
-    llm_port: str = Form(""),
     llm_model: str = Form(""),
 ) -> RedirectResponse:
     del request
@@ -158,13 +159,16 @@ async def create_job(
     llm_url = ""
     selected_llm_model = ""
     if use_llm:
-        llm_url = _build_llm_base_url(llm_base_url, llm_port)
-        if not llm_url and not settings.llm_base_url:
+        llm_url = _build_llm_base_url(llm_base_url)
+        selected_llm_model = llm_model.strip()
+        if not llm_url and settings.llm_base_url:
+            llm_url = _build_llm_base_url(settings.llm_base_url)
+        if not llm_url:
             raise HTTPException(
                 status_code=422,
-                detail="LLM endpoint is required when LLM cleaner is enabled.",
+                detail="LLM base URL is required when LLM cleaner is enabled.",
             )
-        selected_llm_model = llm_model.strip()
+        selected_llm_model = selected_llm_model or settings.llm_model
 
     job = JOBS.create_with_capacity_check(pdf.filename, settings.max_pending_jobs)
     if job is None:
@@ -324,9 +328,8 @@ def _checkbox_to_bool(value: str | None) -> bool:
     return value not in {None, "", "0", "false", "False", "off"}
 
 
-def _build_llm_base_url(endpoint: str, port: str) -> str:
+def _build_llm_base_url(endpoint: str) -> str:
     endpoint = endpoint.strip()
-    port = port.strip()
     if not endpoint:
         return ""
 
@@ -334,31 +337,17 @@ def _build_llm_base_url(endpoint: str, port: str) -> str:
         endpoint = f"http://{endpoint}"
 
     parts = urlsplit(endpoint)
-    if not parts.scheme or not parts.netloc:
-        raise HTTPException(status_code=422, detail="LLM endpoint must be a valid URL.")
+    if parts.scheme not in {"http", "https"} or not parts.netloc:
+        raise HTTPException(status_code=422, detail="LLM base URL must be a valid URL.")
 
-    netloc = parts.netloc
-    if port:
-        parsed_port = _parse_llm_port(port)
-        host = parts.hostname
-        if not host:
-            raise HTTPException(status_code=422, detail="LLM endpoint must include a host.")
-        if ":" in host and not host.startswith("["):
-            host = f"[{host}]"
-        netloc = f"{host}:{parsed_port}"
-
-    return urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", "")).rstrip("/")
-
-
-def _parse_llm_port(port: str) -> int:
     try:
-        parsed_port = int(port)
+        _ = parts.port
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail="LLM port must be a number.") from exc
+        raise HTTPException(status_code=422, detail="LLM base URL must be a valid URL.") from exc
+    if not parts.hostname:
+        raise HTTPException(status_code=422, detail="LLM base URL must be a valid URL.")
 
-    if parsed_port < 1 or parsed_port > 65535:
-        raise HTTPException(status_code=422, detail="LLM port must be between 1 and 65535.")
-    return parsed_port
+    return urlunsplit((parts.scheme, parts.netloc, parts.path.rstrip("/"), "", "")).rstrip("/")
 
 
 def _utc_now() -> datetime:
@@ -427,7 +416,12 @@ def _require_job_result(job_id: str, attr_name: str):
     return job
 
 
-def cli() -> None:
+def cli(argv: list[str] | None = None) -> None:
+    args = sys.argv[1:] if argv is None else argv
+    if "--version" in args:
+        print(f"readmypaper {__version__}")
+        return
+
     print(f"Data directory: {settings.data_dir}")
     print(f"Cache directory: {settings.cache_dir}")
     uvicorn.run(

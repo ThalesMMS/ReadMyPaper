@@ -2,6 +2,10 @@
 
 ReadMyPaper is a local Python web app for turning scientific PDFs into spoken audio.
 
+**Beta status:** ReadMyPaper is currently a source-install-only beta. The
+`0.2.0` package metadata is the current development target, but no PyPI package,
+git tag, or GitHub Release has been published yet.
+
 It is built for articles and papers rather than generic office PDFs. The pipeline:
 
 1. uploads a PDF through a local web UI,
@@ -90,34 +94,10 @@ ReadMyPaper/
 
 ## Installation
 
-### Quick Install (Package)
+ReadMyPaper is not published on PyPI yet. Install and run it from a source
+checkout while the project remains in beta.
 
-Use this path when you want to install and run ReadMyPaper as an application:
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install readmypaper
-readmypaper
-```
-
-For **Kokoro quality TTS** (optional, higher quality with extra dependencies),
-install the package extra instead:
-
-```bash
-python -m pip install "readmypaper[kokoro]"
-readmypaper
-```
-
-Kokoro also requires the `espeak-ng` system package. See
-[Platform Support](#platform-support) for platform-specific install commands.
-The default **Piper TTS** mode does not need system packages beyond what pip
-installs.
-
-### Development Setup (From Source)
-
-Use this path when you are working from a source checkout.
-
-#### Linux and macOS
+### Linux and macOS
 
 ```bash
 python3.12 -m venv .venv
@@ -127,7 +107,7 @@ python -m pip install -r requirements.txt
 python -m readmypaper.main
 ```
 
-#### Windows (PowerShell)
+### Windows (PowerShell)
 
 ```powershell
 py -3.12 -m venv .venv
@@ -138,14 +118,16 @@ python -m readmypaper.main
 ```
 
 For Kokoro support from a source checkout, install the optional extra after
-creating the virtual environment:
+creating the virtual environment. Kokoro also requires the `espeak-ng` system
+package; see [Platform Support](#platform-support) for platform-specific install
+commands.
 
 ```bash
 python -m pip install ".[kokoro]"
 ```
 
-Both `readmypaper` and `python -m readmypaper.main` print the data and cache
-directories on startup. Then open:
+`python -m readmypaper.main` prints the data and cache directories on startup.
+Then open:
 
 ```text
 http://127.0.0.1:8000
@@ -238,8 +220,8 @@ The delete action removes both `data_dir/uploads/{job_id}` and
 | `READMYPAPER_SPEECH_RATE_MAX` | `2.0` | Maximum accepted speech rate |
 | `READMYPAPER_MAX_PENDING_JOBS` | `10` | Maximum queued or running jobs before new uploads are rejected |
 | `READMYPAPER_JOB_RETENTION_HOURS` | `0` | Startup cleanup TTL in hours; `0` disables automatic cleanup |
-| `READMYPAPER_LLM_URL` | empty | Optional default OpenAI-compatible endpoint for the LLM cleaner |
-| `READMYPAPER_LLM_MODEL` | empty | Optional default model name sent to the LLM endpoint |
+| `READMYPAPER_LLM_URL` | empty | Optional default OpenAI-compatible base URL for the LLM cleaner |
+| `READMYPAPER_LLM_MODEL` | empty | Optional default model name sent to the LLM cleaner |
 | `READMYPAPER_LLM_ENABLED` | `false` | Preselects the optional LLM cleaner checkbox when set to `true`, `yes`, or `1` |
 
 ## Privacy & Data Handling
@@ -353,7 +335,7 @@ Scientific notation is expanded for natural listening:
 ## LLM cleaner configuration
 
 If you have a local or otherwise trusted OpenAI-compatible endpoint, enable
-"Use local LLM" in the web UI and enter the endpoint, port, and model for that
+"Use local LLM" in the web UI and enter the full base URL and model for that
 job. Environment variables are optional defaults:
 
 ```bash
@@ -379,10 +361,11 @@ pytest
 
 ### Kokoro reports a missing `espeak-ng`
 
-Kokoro needs the `espeak-ng` system package in addition to the Python extra:
+Kokoro needs the `espeak-ng` system package in addition to the local source
+extra:
 
 ```bash
-python -m pip install "readmypaper[kokoro]"
+python -m pip install ".[kokoro]"
 ```
 
 See the [Platform Support](#platform-support) section for platform-specific
@@ -398,12 +381,6 @@ runtime dependencies:
 python -m pip install -r requirements.txt
 ```
 
-For package installs, reinstall the package:
-
-```bash
-python -m pip install --upgrade readmypaper
-```
-
 ### Docling is not installed
 
 Source checkouts need the full runtime dependency set before PDF parsing works:
@@ -411,8 +388,6 @@ Source checkouts need the full runtime dependency set before PDF parsing works:
 ```bash
 python -m pip install -r requirements.txt
 ```
-
-Package installs include Docling through the published dependencies.
 
 ### Data or cache directory permission errors
 
@@ -423,7 +398,7 @@ directories:
 ```bash
 READMYPAPER_DATA_DIR=/path/you/can/write/data
 READMYPAPER_CACHE_DIR=/path/you/can/write/cache
-readmypaper
+python -m readmypaper.main
 ```
 
 ### Legacy `./outputs` warning
@@ -432,6 +407,16 @@ Older source-based runs may have stored files in `./outputs`. When ReadMyPaper
 detects files there, it prints a warning with both the legacy path and the new
 data directory. Move any PDFs, cleaned text, or audio files you still need into
 your preferred archive location, then remove the legacy `./outputs` directory.
+
+## Contributing / Support / Releasing
+
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, validation, and pull
+  request expectations.
+- See [SUPPORT.md](SUPPORT.md) for usage questions and bug reporting guidance.
+- See [SECURITY.md](SECURITY.md) for private security reporting.
+- See [AGENTS.md](AGENTS.md) for coding conventions used in this repository.
+- See [RELEASING.md](RELEASING.md) for the release checklist and validation
+  process.
 
 ## Notes on licensing
 
